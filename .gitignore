@@ -1,0 +1,12 @@
+passo_a_passo.txt
+frontend/msg_zap.xlsx
+backend/imagens/
+backend/node_modules/
+backend/.wwebjs_auth/
+backend/.wwebjs_cache/
+backend/copias/
+frontend/copias/
+.wwebjs_auth/
+.wwebjs_cache/
+node_modules/
+.env

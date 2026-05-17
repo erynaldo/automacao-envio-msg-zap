@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema Automatizado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background:
+                radial-gradient(circle at top left, #1e3a8a, transparent 30%),
+                radial-gradient(circle at bottom right, #065f46, transparent 30%),
+                #020617;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 20px;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        #relogio {
+            background-color: rgba(184, 112, 4, 0.997);
+            padding: 10px;
+            border-radius: 10px;
+            letter-spacing: 2px;
+            font-size: 22px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body class="text-white bg-slate-950 pt-28">
+    <header
+        class="fixed top-0 left-0 right-0 h-20 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800 z-50 flex items-center justify-between px-8">
+        <h1 class="text-2xl font-black text-white">
+            Seja bem vindo <span id="tituloUsuario" class="text-cyan-400"></span>
+        </h1>
+        <div class="flex items-center gap-4">
+            <div class="bg-slate-900 border border-slate-700 px-5 py-3 rounded-2xl text-white">
+                👤 <span id="usuarioLogado"></span>
+            </div>
+            <button onclick="logout()"
+                class="bg-red-500 hover:bg-red-400 transition-all text-white px-6 py-3 rounded-2xl font-bold">
+                Sair
+            </button>
+        </div>
+    </header>
+    <div class="max-w-7xl mx-auto p-6">
+        <div class="mb-8">
+            <h1 class="text-4xl font-black tracking-tight">
+                🤖 Envio de Mensagens via WhatsApp
+            </h1>
+            <p class="text-slate-400 mt-2">
+                Automação Inteligente para envio de mensagens e arquivos pelo WhatsApp.
+                Os dados de agendamento são lidos diretamente do banco PostgreSQL.
+            </p>
+        </div>
+        <!-- CONTROLE -->
+        <div class="glass rounded-3xl p-6 shadow-2xl">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 flex items-center justify-center text-2xl">⚙️</div>
+                <div>
+                    <h2 class="text-xl font-bold">
+                        Controle do Sistema
+                        <button id="refreshBtn" class="ml-2">🔄</button>
+                    </h2>
+                    <p class="text-slate-400 text-sm">Gerencie a automação</p>
+                </div>
+            </div>
+            <div class="mb-4 flex flex-wrap gap-3 items-center">
+                <div id="relogio">00:00:00</div>
+                <span id="driverStatus" class="px-4 py-2 rounded-full text-sm bg-slate-800">⚪ WhatsApp ...</span>
+                <span id="schedulerStatus" class="px-4 py-2 rounded-full text-sm bg-slate-800">⚪ Scheduler ...</span>
+                <span id="jobsCount" class="px-4 py-2 rounded-full text-sm bg-slate-800">📨 Tarefas: 0</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button id="startBtn"
+                    class="bg-cyan-500 hover:bg-cyan-400 transition-all text-slate-950 font-bold py-4 rounded-2xl">
+                    🚀 Iniciar Automação
+                </button>
+                <button id="stopBtn"
+                    class="bg-red-500 hover:bg-red-400 transition-all text-white font-bold py-4 rounded-2xl">
+                    🛑 Parar Automação
+                </button>
+            </div>
+        </div>
+        <!-- CADASTRO DE TAREFA -->
+        <div class="glass rounded-3xl p-6 shadow-2xl mt-6">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-2xl">📝</div>
+                <div>
+                    <h2 class="text-xl font-bold">Agendar Tarefas para envio automático</h2>
+                    <p class="text-slate-400 text-sm">Cadastro manual de tarefas (salvo no PostgreSQL)</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <input type="text" placeholder="Nome do Professor" id="nomeProfessor"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4">
+                <input type="text" placeholder="Telefone (ex: 55868125...)" id="telefoneProfessor"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4">
+                <input type="text" placeholder="Disciplina" id="nomeDisciplina"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4">
+                <input type="text" placeholder="Série/Turma" id="serieTurma"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4">
+                <input type="text" placeholder="Início da aula (ex: 8:00)" id="horaInicio"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4">
+                <input type="text" placeholder="Final da aula (ex: 9:10)" id="horaFim"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4">
+                <input type="text" placeholder="Dia da Semana (ex: segunda)" id="diaSemana"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4">
+                <input type="text" placeholder="Horário do Envio (HH:MM:SS)" id="horarioEnvio"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4">
+                <input type="text" placeholder="Ex: imagem.jpg ou arquivo.pdf (opcional)" id="caminhoImagem"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4">
+                <textarea id="mensagemIndividual" rows="3" placeholder="Digite aqui a mensagem"
+                    class="bg-slate-900 border border-slate-700 rounded-2xl p-4"></textarea>
+            </div>
+            <button onclick="salvarTarefa()"
+                class="mt-5 w-full bg-emerald-500 hover:bg-emerald-400 transition-all text-slate-950 font-bold py-4 rounded-2xl">
+                Salvar Tarefa
+            </button>
+            <p class="font-bold text-cyan-400 text-xl mt-6">Tarefas Agendadas</p>
+            <div id="listaTarefas" class="mt-4 space-y-3"></div>
+        </div>
+        <!-- NOTIFICAÇÕES -->
+        <div class="glass rounded-3xl p-6 shadow-2xl mt-6">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-12 h-12 rounded-2xl bg-orange-500/20 flex items-center justify-center text-2xl">🔔</div>
+                <div>
+                    <h2 class="text-xl font-bold">Status das Notificações</h2>
+                    <p class="text-slate-400 text-sm">Eventos e logs do sistema</p>
+                </div>
+            </div>
+            <div id="notificationsList" class="space-y-3 max-h-[350px] overflow-auto">
+                <div class="text-slate-500">Aguardando eventos...</div>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL EDITAR -->
+    <div id="modalEditar" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black text-white">Editar Tarefa</h2>
+                <button onclick="fecharModal()" class="text-red-400 text-2xl">✕</button>
+            </div>
+            <input type="hidden" id="editId">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" id="editProfessor" placeholder="Professor"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white">
+                <input type="text" id="editTelefone" placeholder="Telefone"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white">
+                <input type="text" id="editDisciplina" placeholder="Disciplina"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white">
+                <input type="text" id="editTurma" placeholder="Turma/Série"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white">
+                <input type="text" id="editHoraInicio" placeholder="Início da Aula"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white">
+                <input type="text" id="editHoraFim" placeholder="Término da Aula"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white">
+                <input type="text" id="editDia" placeholder="Dia da Semana"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white">
+                <input type="text" id="editHorarioEnvio" placeholder="Horário de Envio"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white">
+                <input type="text" id="editCaminhoImagem" placeholder="Ex: imagem.jpg ou arquivo.pdf"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white">
+                <textarea id="editMensagemIndividual" rows="3" placeholder="Digite aqui a mensagem"
+                    class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white"></textarea>
+            </div>
+            <button onclick="salvarEdicao()"
+                class="mt-6 w-full bg-cyan-500 hover:bg-cyan-400 transition-all text-slate-950 font-bold py-4 rounded-2xl">
+                Salvar Alterações
+            </button>
+        </div>
+    </div>
+    <script>
+        const token = localStorage.getItem('token')
+        if (!token) window.location.href = '/index.html'
+        function parseJwt(t) { return JSON.parse(atob(t.split('.')[1])) }
+        const usuario = parseJwt(token)
+        document.getElementById('usuarioLogado').textContent = usuario.nome
+        document.getElementById('tituloUsuario').textContent = usuario.nome
+        const authHeaders = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        }
+        let lastNotifId = 0
+        // ---------- Relógio ----------
+        function atualizarRelogio() {
+            document.getElementById('relogio').textContent = new Date().toLocaleTimeString('pt-BR')
+        }
+        setInterval(atualizarRelogio, 1000); atualizarRelogio()
+        // ---------- Status ----------
+        async function atualizarStatus() {
+            try {
+                const data = await (await fetch('/status')).json()
+                const driver = document.getElementById('driverStatus')
+                driver.textContent = data.driver_ready ? '🟢 WhatsApp Conectado' : '🔴 WhatsApp Offline'
+                driver.className = 'px-4 py-2 rounded-full text-sm ' +
+                    (data.driver_ready ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400')
+                const sched = document.getElementById('schedulerStatus')
+                sched.textContent = data.scheduler_running ? '🟢 Automação Ativa' : '🟡 Automação Parada'
+                sched.className = 'px-4 py-2 rounded-full text-sm ' +
+                    (data.scheduler_running ? 'bg-cyan-500/20 text-cyan-400' : 'bg-yellow-500/20 text-yellow-400')
+                document.getElementById('jobsCount').textContent = `📨 Tarefas: ${data.jobs_count}`
+            } catch { }
+        }
+        setInterval(atualizarStatus, 5000); atualizarStatus()
+        // ---------- Notificações ----------
+        async function carregarNotificacoes() {
+            try {
+                const data = await (await fetch(`/notifications?last_id=${lastNotifId}`)).json()
+                if (!data.notifications?.length) return
+                const c = document.getElementById('notificationsList')
+                if (c.querySelector('.text-slate-500')) c.innerHTML = ''
+                data.notifications.forEach(n => {
+                    const item = document.createElement('div')
+                    item.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-4'
+                    item.innerHTML = `
+                    <div class="text-xs text-slate-500 mb-1">${n.timestamp}</div>
+                    <div class="text-slate-300">${n.message}</div>`
+                    c.appendChild(item)
+                    c.scrollTop = c.scrollHeight
+                    lastNotifId = Math.max(lastNotifId, n.id)
+                })
+            } catch { }
+        }
+        setInterval(carregarNotificacoes, 2000)
+        // ---------- Tarefas ----------
+        async function carregarTarefas() {
+            const data = await (await fetch('/tarefas', { headers: authHeaders })).json()
+            const div = document.getElementById('listaTarefas')
+            div.innerHTML = ''
+            if (!data.tarefas?.length) {
+                div.innerHTML = '<div class="text-slate-500">Nenhuma tarefa cadastrada.</div>'
+                return
+            }
+            data.tarefas.forEach(t => {
+                const wrapper = document.createElement('div')
+                wrapper.className = 'bg-slate-800 p-3 rounded-xl flex justify-between items-center gap-3 flex-wrap'
+                wrapper.innerHTML = `
+                <div>
+                    <div class="text-xl font-bold tracking-wider">
+                        ${t.nome_professor}
+                        <span class="font-normal font-bold text-lg text-slate-300 tracking-widest">- ${t.telefone_professor}</span>
+                    </div>
+                    <div class="rounded-lg px-2 text-lg mt-1 inline-block">
+                        ${t.nome_disciplina} | ${t.serie_turma} | Aula às ${t.hora_inicio}h
+                        | Lembrete toda ${t.dia_semana} às ${t.horario_envio} | ${t.mensagem_individual}
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button class="btn-edit bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-4 py-2 rounded-xl">Alterar</button>
+                    <button class="btn-del bg-red-500 hover:bg-red-400 text-white px-4 py-2 rounded-xl">Excluir</button>
+                </div>`
+                wrapper.querySelector('.btn-edit').onclick = () => abrirModal(t)
+                wrapper.querySelector('.btn-del').onclick = () => excluirTarefa(t.id)
+                div.appendChild(wrapper)
+            })
+        }
+        async function salvarTarefa() {
+            const ids = ['nomeProfessor', 'telefoneProfessor', 'nomeDisciplina', 'serieTurma',
+                'horaInicio', 'horaFim', 'diaSemana', 'horarioEnvio', 'mensagemIndividual', 'caminhoImagem']
+            const body = {}
+            ids.forEach(i => body[i] = document.getElementById(i).value)
+            const data = await (await fetch('/criar-tarefa', {
+                method: 'POST', headers: authHeaders, body: JSON.stringify(body)
+            })).json()
+            if (data.success) {
+                alert('Tarefa criada!')
+                ids.forEach(i => document.getElementById(i).value = '')
+                carregarTarefas()
+            } else alert(data.error)
+        }
+        async function excluirTarefa(id) {
+            if (!confirm('Excluir esta tarefa?')) return
+            await fetch(`/tarefas/${id}`, { method: 'DELETE', headers: authHeaders })
+            carregarTarefas()
+        }
+        function abrirModal(t) {
+            document.getElementById('modalEditar').classList.remove('hidden')
+            document.getElementById('editId').value = t.id
+            document.getElementById('editProfessor').value = t.nome_professor
+            document.getElementById('editTelefone').value = t.telefone_professor
+            document.getElementById('editDisciplina').value = t.nome_disciplina
+            document.getElementById('editTurma').value = t.serie_turma
+            document.getElementById('editHoraInicio').value = t.hora_inicio
+            document.getElementById('editHoraFim').value = t.hora_fim
+            document.getElementById('editDia').value = t.dia_semana
+            document.getElementById('editHorarioEnvio').value = t.horario_envio
+            document.getElementById('editCaminhoImagem').value = t.caminho_imagem
+            document.getElementById('editMensagemIndividual').value = t.mensagem_individual          
+        }
+        function fecharModal() {
+            document.getElementById('modalEditar').classList.add('hidden')
+        }
+        async function salvarEdicao() {
+            const id = document.getElementById('editId').value
+            const body = {
+                nomeProfessor: document.getElementById('editProfessor').value,
+                telefoneProfessor: document.getElementById('editTelefone').value,
+                nomeDisciplina: document.getElementById('editDisciplina').value,
+                serieTurma: document.getElementById('editTurma').value,
+                horaInicio: document.getElementById('editHoraInicio').value,
+                horaFim: document.getElementById('editHoraFim').value,
+                diaSemana: document.getElementById('editDia').value,
+                horarioEnvio: document.getElementById('editHorarioEnvio').value,
+                caminhoImagem: document.getElementById('editCaminhoImagem').value,
+                mensagemIndividual: document.getElementById('editMensagemIndividual').value             
+            }
+            const data = await (await fetch(`/tarefas/${id}`, {
+                method: 'PUT', headers: authHeaders, body: JSON.stringify(body)
+            })).json()
+            if (data.success) { fecharModal(); carregarTarefas() }
+        }
+        // ---------- Botões ----------
+        document.getElementById('startBtn').onclick = async () => {
+            const data = await (await fetch('/start', { method: 'POST', headers: authHeaders })).json()
+            if (data.success) alert(`Automação iniciada! ${data.total} tarefa(s) agendada(s).`)
+            else alert(data.error || 'Erro ao iniciar')
+            atualizarStatus()
+        }
+        document.getElementById('stopBtn').onclick = async () => {
+            await fetch('/stop', { method: 'POST', headers: authHeaders })
+            atualizarStatus()
+        }
+        document.getElementById('refreshBtn').onclick = () => { atualizarStatus(); carregarTarefas() }
+        function logout() {
+            localStorage.removeItem('token')
+            window.location.href = '/index.html'
+        }
+        carregarTarefas()
+    </script>
+</body>
+
+</html>
