@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-950 h-screen flex flex-col justify-between items-center text-white">
+    <button class="bg-blue-500 text-white font-bold py-2 px-4 rounded transition-colors duration-200 hover:bg-blue-700 mt-8">
+        <a href="http://localhost:3000/qrcode">Clique aqui para acessar o QR Code</a>
+    </button>
+    
+    <div id="toastContainer" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <div class="my-auto w-full max-w-md bg-slate-900/70 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl">
+        <h1 class="text-4xl font-black mb-8 text-center">Login</h1>
+        <div class="space-y-5">
+            <input type="email" id="email" placeholder="E-mail"
+                class="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4">
+
+            <!-- <input type="password" id="senha" placeholder="Senha"
+                class="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4"> -->
+
+            <div class="relative">
+                <input type="password" id="senha" placeholder="Senha"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4 pr-14">
+                <button type="button" id="toggleSenha" aria-label="Mostrar senha"
+                    class="absolute inset-y-0 right-0 px-4 flex items-center text-slate-400 hover:text-cyan-400">
+                    <span id="iconeOlho">👁️</span>
+                </button>
+            </div>
+
+            <button onclick="login()"
+                class="w-full bg-cyan-500 hover:bg-cyan-400 transition-all text-slate-950 font-bold py-4 rounded-2xl">
+                Entrar
+            </button>
+            <a href="/cadastro-user.html" class="block text-center text-cyan-400 hover:text-cyan-300">
+                Cadastre-se
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer')
+            const colors = {
+                success: 'bg-emerald-500 text-slate-950',
+                error:   'bg-red-500 text-white',
+                info:    'bg-cyan-500 text-slate-950'
+            }
+            const toast = document.createElement('div')
+            toast.className = `pointer-events-auto ${colors[type] || colors.info} font-bold px-5 py-3 rounded-2xl shadow-2xl transition-all duration-300 transform translate-x-6 opacity-0`
+            toast.textContent = message
+            container.appendChild(toast)
+            requestAnimationFrame(() => toast.classList.remove('translate-x-6', 'opacity-0'))
+            setTimeout(() => {
+                toast.classList.add('translate-x-6', 'opacity-0')
+                setTimeout(() => toast.remove(), 300)
+            }, 3000)
+        }
+
+        const inputSenha = document.getElementById('senha')
+        const btnToggle = document.getElementById('toggleSenha')
+        const iconeOlho = document.getElementById('iconeOlho')
+        
+        btnToggle.addEventListener('click', () => {
+            const mostrar = inputSenha.type === 'password'
+            inputSenha.type = mostrar ? 'text' : 'password'
+            iconeOlho.textContent = mostrar ? '🙈' : '👁️'
+            btnToggle.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha')
+        })
+
+        async function login() {
+            const email = document.getElementById('email').value
+            const senha = document.getElementById('senha').value
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                })
+                const data = await response.json()
+                if (data.success) {
+                    localStorage.setItem('token', data.token)
+                    window.location.href = '/auth-admin.html'
+                } else {
+                    // alert(data.error)
+                    showToast(data.error || 'Erro no login', 'error')
+                }
+            } catch (err) {
+                // alert('Erro de conexão com o servidor')
+                showToast('Erro de conexão com o servidor', 'error')
+            }
+        }
+    </script>
+</body>
+
+</html>

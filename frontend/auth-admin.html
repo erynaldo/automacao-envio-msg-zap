@@ -57,6 +57,9 @@
             </button>
         </div>
     </header>
+    <!-- Container de Toasts (topo-direita) -->
+    <div id="toastContainer" class="fixed top-24 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
     <div class="max-w-7xl mx-auto p-6">
         <div class="mb-8">
             <h1 class="text-4xl font-black tracking-tight">
@@ -91,7 +94,7 @@
                     🚀 Iniciar Automação
                 </button>
                 <button id="stopBtn"
-                    class="bg-red-500 hover:bg-red-400 transition-all text-white font-bold py-4 rounded-2xl">
+                    class="bg-orange-500 hover:bg-orange-400 transition-all text-white font-bold py-4 rounded-2xl">
                     🛑 Parar Automação
                 </button>
             </div>
@@ -186,7 +189,7 @@
     </div>
     <script>
         const token = localStorage.getItem('token')
-        if (!token) window.location.href = '/index.html'
+        if (!token) window.location.href = '/login.html'
         function parseJwt(t) { return JSON.parse(atob(t.split('.')[1])) }
         const usuario = parseJwt(token)
         document.getElementById('usuarioLogado').textContent = usuario.nome
@@ -195,7 +198,34 @@
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
         }
+
         let lastNotifId = 0
+
+        // ---------- Toast ----------
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer')
+            const colors = {
+                success: 'bg-emerald-500 text-slate-950',
+                error: 'bg-red-500 text-white',
+                info: 'bg-cyan-500 text-slate-950'
+            }
+            const toast = document.createElement('div')
+            toast.className =
+                `pointer-events-auto ${colors[type] || colors.info} ` +
+                `font-bold px-5 py-3 rounded-2xl shadow-2xl ` +
+                `transition-all duration-300 transform translate-x-6 opacity-0`
+            toast.textContent = message
+            container.appendChild(toast)
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-6', 'opacity-0')
+            })
+            setTimeout(() => {
+                toast.classList.add('translate-x-6', 'opacity-0')
+                setTimeout(() => toast.remove(), 300)
+            }, 3000)
+        }
+
+
         // ---------- Relógio ----------
         function atualizarRelogio() {
             document.getElementById('relogio').textContent = new Date().toLocaleTimeString('pt-BR')
@@ -278,14 +308,18 @@
                 method: 'POST', headers: authHeaders, body: JSON.stringify(body)
             })).json()
             if (data.success) {
-                alert('Tarefa criada!')
+                // alert('Tarefa criada com sucesso!')
+                showToast('✅ Tarefa criada com sucesso!', 'success')
                 ids.forEach(i => document.getElementById(i).value = '')
                 carregarTarefas()
-            } else alert(data.error)
+                // } else alert(data.error)
+            } else showToast(data.error || 'Erro ao criar tarefa', 'error')
         }
         async function excluirTarefa(id) {
             if (!confirm('Excluir esta tarefa?')) return
-            await fetch(`/tarefas/${id}`, { method: 'DELETE', headers: authHeaders })
+            // await fetch(`/tarefas/${id}`, { method: 'DELETE', headers: authHeaders })
+            const data = await (await fetch(`/tarefas/${id}`, { method: 'DELETE', headers: authHeaders })).json()
+            if (data.success) showToast('🗑️ Tarefa excluída!', 'error')
             carregarTarefas()
         }
         function abrirModal(t) {
@@ -300,7 +334,7 @@
             document.getElementById('editDia').value = t.dia_semana
             document.getElementById('editHorarioEnvio').value = t.horario_envio
             document.getElementById('editCaminhoImagem').value = t.caminho_imagem
-            document.getElementById('editMensagemIndividual').value = t.mensagem_individual          
+            document.getElementById('editMensagemIndividual').value = t.mensagem_individual
         }
         function fecharModal() {
             document.getElementById('modalEditar').classList.add('hidden')
@@ -317,12 +351,18 @@
                 diaSemana: document.getElementById('editDia').value,
                 horarioEnvio: document.getElementById('editHorarioEnvio').value,
                 caminhoImagem: document.getElementById('editCaminhoImagem').value,
-                mensagemIndividual: document.getElementById('editMensagemIndividual').value             
+                mensagemIndividual: document.getElementById('editMensagemIndividual').value
             }
             const data = await (await fetch(`/tarefas/${id}`, {
                 method: 'PUT', headers: authHeaders, body: JSON.stringify(body)
             })).json()
-            if (data.success) { fecharModal(); carregarTarefas() }
+            if (data.success) {
+                fecharModal();
+                carregarTarefas()
+                showToast('✅ Dados alterados com sucesso!', 'success')
+            } else {
+                showToast(data.error || 'Erro ao alterar a tarefa', 'error')
+            }
         }
         // ---------- Botões ----------
         document.getElementById('startBtn').onclick = async () => {
@@ -338,7 +378,7 @@
         document.getElementById('refreshBtn').onclick = () => { atualizarStatus(); carregarTarefas() }
         function logout() {
             localStorage.removeItem('token')
-            window.location.href = '/index.html'
+            window.location.href = '/login.html'
         }
         carregarTarefas()
     </script>

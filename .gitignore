@@ -10,3 +10,4 @@ frontend/copias/
 .wwebjs_cache/
 node_modules/
 .env
+backend/*copy.js

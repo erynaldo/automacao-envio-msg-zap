@@ -5,8 +5,12 @@ const cors = require('cors')
 const cron = require('node-cron')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const open = require('open')
+// const { open } = require('open')
 const { pool, inicializarBanco } = require('./db')
-const { iniciarWhatsApp, enviarMensagem, statusWhatsApp } = require('./whatsapp')
+// const { iniciarWhatsApp, enviarMensagem, statusWhatsApp } = require('./whatsapp')
+const { client, iniciarWhatsApp, configurarQRCode, enviarMensagem, statusWhatsApp } = require('./whatsapp')
+
 const app = express()
 const PORT = process.env.PORT || 3000
 app.use(cors())
@@ -20,6 +24,7 @@ const diasSemana = {
 let notifications = []
 let notificationId = 0
 const jobsAgendados = new Map() // id_tarefa -> cron.ScheduledTask
+
 function addNotification(message) {
     notificationId++
     notifications.push({
@@ -30,6 +35,7 @@ function addNotification(message) {
     if (notifications.length > 100) notifications.shift()
     console.log(message)
 }
+
 function verificarToken(req, res, next) {
     try {
         const authHeader = req.headers.authorization
@@ -41,6 +47,7 @@ function verificarToken(req, res, next) {
         return res.status(401).json({ error: 'Token inválido' })
     }
 }
+
 // ---------- Autenticação ----------
 app.post('/cadastro', async (req, res) => {
     try {
@@ -112,12 +119,23 @@ app.post('/criar-tarefa', verificarToken, async (req, res) => {
         let {
             nomeProfessor, telefoneProfessor, nomeDisciplina,
             serieTurma, horaInicio, horaFim, diaSemana,
-            horarioEnvio, mensagemIndividual, caminhoImagem
+            horarioEnvio, mensagemIndividual
         } = req.body
+
+        // 1. Validação simples (garantir que os dados chegaram)
+        if (!nomeProfessor || !telefoneProfessor || !diaSemana || !horarioEnvio) {
+            return res.status(400).json({ error: 'Campos Professor, Telefone, Dia, Horário de envio são obrigatórios.' });
+        }
+
         nomeProfessor = (nomeProfessor || '').toUpperCase()
         nomeDisciplina = (nomeDisciplina || '').toUpperCase()
         serieTurma = (serieTurma || '').toUpperCase()
         diaSemana = (diaSemana || '').toUpperCase()
+
+        // 2. Concatenando os campos para gerar o caminho do arquivo
+        // Exemplo: matricula "12345" e mesContracheque "05-2026" vira "12345_05-2026.pdf"
+        let caminhoImagem = `${telefoneProfessor}_${diaSemana}.pdf`;
+
         await pool.query(
             `INSERT INTO tarefas (
                 nome_professor, telefone_professor, nome_disciplina,
@@ -125,11 +143,15 @@ app.post('/criar-tarefa', verificarToken, async (req, res) => {
                 horario_envio, mensagem_individual, caminho_imagem
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
             [nomeProfessor, telefoneProfessor, nomeDisciplina,
-             serieTurma, horaInicio, horaFim, diaSemana,
-             horarioEnvio, mensagemIndividual, caminhoImagem]
+                serieTurma, horaInicio, horaFim, diaSemana,
+                horarioEnvio, mensagemIndividual, caminhoImagem]
         )
         addNotification(`📚 Novo lembrete criado para: ${nomeProfessor}`)
-        res.json({ success: true })
+        // res.json({ success: true })
+
+        // Retorna o registro criado com sucesso
+        return res.status(201).json({ success: true });
+
     } catch (error) {
         console.log(error)
         res.json({ success: false, error: 'Erro ao salvar tarefa' })
@@ -153,7 +175,7 @@ app.put('/tarefas/:id', verificarToken, async (req, res) => {
                 dia_semana=$7, horario_envio=$8, mensagem_individual=$9, caminho_imagem=$10 
              WHERE id=$11`,
             [nomeProfessor, telefoneProfessor, nomeDisciplina,
-             serieTurma, horaInicio, horaFim, diaSemana, horarioEnvio, mensagemIndividual, caminhoImagem, id]
+                serieTurma, horaInicio, horaFim, diaSemana, horarioEnvio, mensagemIndividual, caminhoImagem, id]
         )
         addNotification(`✏️ Tarefa #${id} alterada`)
         res.json({ success: true })
@@ -201,14 +223,13 @@ function agendarTarefa(item) {
             //     `>> *Horário:* ${item.hora_inicio}h às ${item.hora_fim}h.` +
             //     `>> *Aviso:* ${item.mensagem_individual}.`
 
-// ============================================
-            
+            // ============================================
+
             const mensagem =
-                `📚 Olá ${item.nome_professor}. ` +
-                `*AVISO IMPORTANTE:* Lembrando que ` +
+                `⚠️❗️ *LEMBRETE:*  ${item.nome_professor}, ` +
                 `${item.mensagem_individual}.`
 
-// ============================================
+            // ============================================
 
             let imagem = null
             if (item.caminho_imagem && item.caminho_imagem.trim() !== '') {
@@ -258,18 +279,25 @@ app.get('/notifications', (req, res) => {
     const novas = notifications.filter(n => n.id > lastId)
     res.json({ notifications: novas })
 })
-// ---------- Inicialização ----------
-;(async () => {
-    try {
-        await inicializarBanco()
-        iniciarWhatsApp()
-        app.listen(PORT, () => {
-            console.log(`\n🌐 Frontend:  http://localhost:${PORT}`)
-            console.log(`📱 Aguardando conexão do WhatsApp...\n`)
-            addNotification('🚀 Servidor iniciado')
-        })
-    } catch (e) {
-        console.error('Falha ao iniciar:', e)
-        process.exit(1)
-    }
-})()
+    // ---------- Inicialização ----------
+    ; (async () => {
+        try {
+            await inicializarBanco()
+            iniciarWhatsApp()
+            configurarQRCode(app)
+            app.listen(PORT, () => {
+                console.log(`\n🌐 Frontend:  http://localhost:${PORT}`)
+                console.log(`📱 Aguardando conexão do WhatsApp...\n`)
+                addNotification('🚀 Servidor iniciado')
+                // const url = `http://localhost:${PORT}`
+                // open(url).catch(() => console.log(`Abra manualmente: ${url}`))
+
+                import('open').then(module => {
+                    module.default(`http://localhost:${PORT}/login.html`); // substitua pela sua URL
+                });
+            })
+        } catch (e) {
+            console.error('Falha ao iniciar:', e)
+            process.exit(1)
+        }
+    })()
