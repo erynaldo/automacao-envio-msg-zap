@@ -1,11 +1,11 @@
 FROM ghcr.io/puppeteer/puppeteer:latest
 
 USER root
-WORKDIR /backend
+WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
 
 COPY . .
 
-CMD ["node", "backend/server.js"]
+CMD ["node", "server.js"]

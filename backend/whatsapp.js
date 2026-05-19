@@ -81,35 +81,21 @@ function configurarQRCode(app) {
 
     app.get('/qrcode', (req, res) => {
 
-// bbbbbbbbbbbbbbbbbbbbbbbbbb
         try {
-            const code =
-                qrImage.image(
 
-                    ultimoQR,
+            // NÃO EXISTE QR
 
-                    {
-                        type: 'png'
-                    }
-                )
-            res.type('png')
-            code.pipe(res)
-        }
+            if (
 
-        catch (error) {
+                !ultimoQR ||
 
-            console.log(error)
+                typeof ultimoQR !== 'string' ||
 
-            res.status(500).send(
-                'Erro ao gerar o QR Code'
-            )
-        }
+                ultimoQR.trim() === ''
 
-// bbbbbbbbbbbbbbbbbbbbbbbbb
+            ) {
 
-        if (!ultimoQR) {
-
-            return res.send(`
+                return res.send(`
 
 <!DOCTYPE html>
 
@@ -117,7 +103,7 @@ function configurarQRCode(app) {
 
 <head>
 
-<title>WhatsApp Conectado</title>
+<title>WhatsApp</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -140,9 +126,84 @@ function configurarQRCode(app) {
 </html>
 
 `)
-        }
+            }
 
-        // bbbbbbbbbbbbbbbbbbbbb
+            // GERAR BASE64 QR
+
+            const qrBase64 =
+                qrImage.imageSync(
+
+                    ultimoQR,
+
+                    {
+
+                        type: 'png',
+
+                        encoding: 'base64'
+                    }
+                )
+
+            // RETORNAR HTML
+
+            return res.send(`
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<title>QR Code WhatsApp</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+
+<body class="bg-slate-950 min-h-screen flex items-center justify-center">
+
+    <div class="bg-slate-900 p-10 rounded-3xl shadow-2xl text-center">
+
+        <h1 class="text-white text-3xl font-black mb-6">
+
+            Escaneie o QR Code
+
+        </h1>
+
+        <img
+
+            src="data:image/png;base64,${qrBase64}"
+
+            class="rounded-2xl"
+        >
+
+    </div>
+
+</body>
+
+</html>
+
+`)
+
+        } catch (error) {
+
+            console.log(
+                'ERRO QR CODE:',
+                error
+            )
+
+            // GARANTE NÃO ENVIAR 2X
+
+            if (!res.headersSent) {
+
+                return res.status(500).send(`
+
+                    <h1>
+                        Erro gerar QRCode
+                    </h1>
+
+                `)
+            }
+        }
     })
 }
 
